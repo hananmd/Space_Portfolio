@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+.playwright-cli/
+phase1-*.png
 
 # next.js
 /.next/
