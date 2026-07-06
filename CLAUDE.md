@@ -4,7 +4,7 @@ Cinematic, scroll-driven space portfolio. Visitor travels through space; scroll 
 
 ## Current mode
 
-**PROTOTYPE MODE.** We are validating Chapter 1 (Launch, 0–15% scroll) on top of the core scroll engine before committing to the full 5-chapter experience. Do NOT build later chapters, audio, or mobile fallbacks until the decision gate in roadmap.md is passed.
+**FULL BUILD.** Decision gate passed 2026-07-06 — Hanan chose (A), continue to the full 5-chapter experience. Chapters 2–5, audio (Phase 7), and mobile/perf hardening (Phase 8) are unblocked, still gated by the one-feature-per-session rule and the phase order in roadmap.md.
 
 ## Working rules (non-negotiable)
 

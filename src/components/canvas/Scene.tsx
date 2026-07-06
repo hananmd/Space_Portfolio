@@ -5,6 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { CameraRig } from "./CameraRig";
 import { PostProcessing } from "./PostProcessing";
 import { LaunchChapter } from "@/components/chapters/launch/LaunchChapter";
+import { SolarChapter } from "@/components/chapters/solar/SolarChapter";
 
 /**
  * Scene shell: canvas config, lighting, camera rig, chapters.
@@ -41,6 +42,7 @@ export function Scene() {
       <ambientLight intensity={0.06} />
       <Suspense fallback={null}>
         <LaunchChapter />
+        <SolarChapter />
       </Suspense>
       <CameraRig />
       <PostProcessing />

@@ -4,6 +4,7 @@ import {
   Bloom,
   BrightnessContrast,
   EffectComposer,
+  SMAA,
   ToneMapping,
   Vignette,
 } from "@react-three/postprocessing";
@@ -24,10 +25,19 @@ import { ToneMappingMode } from "postprocessing";
  * 3. ToneMapping (ACES Filmic) runs LAST, compressing the graded HDR
  *    result back to displayable range. This replaces the tone mapping the
  *    Canvas would otherwise apply too early.
+ * 4. SMAA runs after tone mapping — it works on the final display-ready
+ *    (LDR) pixels, smoothing geometry edges (Earth's silhouette, rocket
+ *    fins) via a cheap shader pass instead of real multisampling.
+ *
+ * multisampling is 0 (not the EffectComposer's real-MSAA option): Chrome's
+ * own driver bug list flags MSAA as slow specifically on Intel integrated
+ * GPUs (`msaa_is_slow` workaround, crbug.com/527565), which is common
+ * hardware for this portfolio's audience (corporate laptops). SMAA gives
+ * comparable edge quality without that cost.
  */
 export function PostProcessing() {
   return (
-    <EffectComposer multisampling={4}>
+    <EffectComposer multisampling={0}>
       <Bloom
         mipmapBlur
         luminanceThreshold={0.9}
@@ -38,6 +48,7 @@ export function PostProcessing() {
       <BrightnessContrast brightness={-0.02} contrast={0.06} />
       <Vignette eskil={false} offset={0.25} darkness={0.6} />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      <SMAA />
     </EffectComposer>
   );
 }

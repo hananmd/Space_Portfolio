@@ -52,21 +52,23 @@ const FRAGMENT = /* glsl */ `
 interface AtmosphereProps {
   /** Radius of the planet this halo wraps. */
   radius: number;
+  /** Rim glow color. Defaults to Earth's pale blue. */
+  color?: string;
 }
 
 /** Halo shell is 8% larger than the planet — the visible glow thickness. */
 const SHELL_SCALE = 1.08;
 
-export function Atmosphere({ radius }: AtmosphereProps) {
+export function Atmosphere({ radius, color = "#4d8fd1" }: AtmosphereProps) {
   // Uniforms are memoized once; the material itself is declared in JSX so
   // R3F disposes it (and the geometry) automatically on unmount.
   const uniforms = useMemo(
     () => ({
-      uColor: { value: new THREE.Color("#4d8fd1") },
+      uColor: { value: new THREE.Color(color) },
       uPower: { value: 3.5 },
       uIntensity: { value: 1.4 },
     }),
-    []
+    [color]
   );
 
   return (
