@@ -1,4 +1,6 @@
+import { MILESTONES, type MilestoneTier } from "@/content/milestones";
 import { CHAPTERS } from "./chapters";
+import { CONSTELLATION_LAYOUT } from "./constellationLayout";
 import {
   addVec3,
   lerpVec3,
@@ -52,6 +54,24 @@ import { easeInOutCubic } from "./math";
  * station around Y from Stations-local progress, so a shot that assumed a
  * fixed ring-facing angle would drift out of frame as the station spins;
  * the same reasoning already applies to planets' self-spin in Solar.
+ *
+ * Chapter 4 "Constellation" choreography (keyframe times authored as
+ * fractions of the constellation range, same convention): unlike planets
+ * and stations — individual shot subjects the camera visits nose-to-tail —
+ * a constellation's subject is the PATTERN, and each star is a 0.32-radius
+ * speck that can't carry a close-up. So the camera frames CLUSTERS via
+ * their centroids: glide out of the OS Scheduler hold into the past
+ * cluster (where the chronology begins), traverse outward to the present
+ * cluster, then pull back and up into a wide reveal where all 11 stars and
+ * their connecting line read as one shape — the reveal gets the longest
+ * dwell (it's the shot the narration overlay will later live over).
+ * Cluster membership is derived from MILESTONES' tier field (content.md's
+ * single source of truth) rather than a hand-typed id list, so the shots
+ * can never drift from the content data. The FUTURE cluster deliberately
+ * gets no close-up beat: constellationLayout.ts placed those stars
+ * furthest out to say "not yet reached," and flying the camera to them
+ * would contradict that — they're only ever seen from the wide reveal.
+ * Same class of judgment call as the exploring planets getting no stop.
  */
 
 export interface CameraPose {
@@ -113,6 +133,61 @@ const STATION_OFFSET: Vec3 = [7, 3.4, 10];
 const INCIDENT_COPILOT_POSE = stationPose("incident-copilot", STATION_OFFSET);
 const MAZE_POSE = stationPose("maze", STATION_OFFSET);
 const OS_SCHEDULER_POSE = stationPose("os-scheduler", STATION_OFFSET);
+
+/** Constellation chapter range in global progress — camera beats scale
+ *  with it. */
+const CONSTELLATION_START = CHAPTERS.constellation.start;
+const CONSTELLATION_SPAN =
+  CHAPTERS.constellation.end - CHAPTERS.constellation.start;
+
+/** Constellation-local fraction f → global progress. */
+function constellationT(f: number): number {
+  return CONSTELLATION_START + f * CONSTELLATION_SPAN;
+}
+
+/** Centroid of a set of milestone stars' world positions — the camera
+ *  frames star CLUSTERS, not individual stars (see module doc above). */
+function starsCentroid(ids: readonly string[]): Vec3 {
+  let x = 0;
+  let y = 0;
+  let z = 0;
+  for (const id of ids) {
+    const [px, py, pz] = CONSTELLATION_LAYOUT[id];
+    x += px;
+    y += py;
+    z += pz;
+  }
+  return [x / ids.length, y / ids.length, z / ids.length];
+}
+
+/** Milestone ids belonging to one tier, straight from content data. */
+function tierIds(tier: MilestoneTier): string[] {
+  return MILESTONES.filter((m) => m.tier === tier).map((m) => m.id);
+}
+
+/** A pose framing a star cluster: pulled back by `offset` from its
+ *  centroid, looking straight at it — same technique as planetPose /
+ *  stationPose, just aimed at a derived center instead of one object. */
+function clusterPose(center: Vec3, offset: Vec3): CameraPose {
+  return { position: addVec3(center, offset), lookAt: center };
+}
+
+// Offsets keep the camera on the NEAR side of the outward arc (-x/+z of
+// the clusters), consistent with arriving from the OS Scheduler station —
+// crossing to the far side would flip the constellation left-to-right
+// between shots and break the "traveling outward" read.
+const PAST_CLUSTER_POSE = clusterPose(starsCentroid(tierIds("past")), [
+  -10, 2.5, 15,
+]);
+const PRESENT_CLUSTER_POSE = clusterPose(starsCentroid(tierIds("present")), [
+  -8, 2, 13,
+]);
+// Wide reveal: raised well above the clusters' y (2–8) so the pattern is
+// seen slightly from above, separating the three depth bands on screen.
+const CONSTELLATION_WIDE_POSE = clusterPose(
+  starsCentroid(MILESTONES.map((m) => m.id)),
+  [-15, 9, 35]
+);
 
 export const CAMERA_TIMELINE: readonly CameraKeyframe[] = [
   // PAD HERO (local 0): eye level with the rocket on its subarctic pad,
@@ -179,9 +254,32 @@ export const CAMERA_TIMELINE: readonly CameraKeyframe[] = [
   // Stations): last station in dock order, camera settles here.
   { t: stationsT(0.8), value: OS_SCHEDULER_POSE, ease: easeInOutCubic },
   { t: stationsT(1.0), value: OS_SCHEDULER_POSE },
-  // Hold the last station's shot for the rest of the scroll until the
-  // Constellation chapter (Phase 5) claims it — same freeze pattern.
-  { t: 1, value: OS_SCHEDULER_POSE },
+  // PAST CLUSTER (constellation-local 0.12): glide out of the OS Scheduler
+  // hold into the six bright past stars — the chronological start of the
+  // constellation.
+  { t: constellationT(0.12), value: PAST_CLUSTER_POSE, ease: easeInOutCubic },
+  // PRESENT CLUSTER (constellation-local 0.42): traverse outward along the
+  // timeline to the three softly-pulsing present stars.
+  {
+    t: constellationT(0.42),
+    value: PRESENT_CLUSTER_POSE,
+    ease: easeInOutCubic,
+  },
+  // WIDE REVEAL (constellation-local 0.72 → 1.0 = end of Constellation):
+  // pull back and up until all 11 stars + connecting line read as one
+  // shape. Longest dwell of the chapter (hold-via-duplicate-value) — this
+  // is the shot the milestone narration will later live over. The future
+  // cluster is only ever seen from here, never visited (see module doc).
+  {
+    t: constellationT(0.72),
+    value: CONSTELLATION_WIDE_POSE,
+    ease: easeInOutCubic,
+  },
+  { t: constellationT(1.0), value: CONSTELLATION_WIDE_POSE },
+  // Hold the wide reveal for the rest of the scroll until the Finale
+  // chapter (Phase 6) claims it — same freeze pattern as every prior
+  // chapter boundary.
+  { t: 1, value: CONSTELLATION_WIDE_POSE },
 ];
 
 function lerpPose(a: CameraPose, b: CameraPose, t: number): CameraPose {
