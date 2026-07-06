@@ -7,6 +7,7 @@ import { PostProcessing } from "./PostProcessing";
 import { LaunchChapter } from "@/components/chapters/launch/LaunchChapter";
 import { SolarChapter } from "@/components/chapters/solar/SolarChapter";
 import { StationsChapter } from "@/components/chapters/stations/StationsChapter";
+import { ConstellationChapter } from "@/components/chapters/constellation/ConstellationChapter";
 
 /**
  * Scene shell: canvas config, lighting, camera rig, chapters.
@@ -45,6 +46,7 @@ export function Scene() {
         <LaunchChapter />
         <SolarChapter />
         <StationsChapter />
+        <ConstellationChapter />
       </Suspense>
       <CameraRig />
       <PostProcessing />
