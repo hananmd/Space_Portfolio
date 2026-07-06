@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { CameraRig } from "./CameraRig";
+import { PostProcessing } from "./PostProcessing";
 import { LaunchChapter } from "@/components/chapters/launch/LaunchChapter";
 
 /**
@@ -25,6 +26,10 @@ export function Scene() {
       // Initial position matches the timeline's t=0 pose so the first
       // rendered frame IS the pad shot — no swoop-in on load.
       camera={{ fov: 45, near: 0.1, far: 200, position: [0, 3.55, 2.9] }}
+      // flat: keep the renderer's output linear (no built-in ACES tone
+      // mapping). Tone mapping happens once, correctly, as the LAST step
+      // inside PostProcessing — after Bloom has read the true HDR values.
+      flat
       style={{ position: "fixed", inset: 0 }}
       aria-hidden // decorative; all meaning lives in the DOM overlay layer
     >
@@ -38,6 +43,7 @@ export function Scene() {
         <LaunchChapter />
       </Suspense>
       <CameraRig />
+      <PostProcessing />
     </Canvas>
   );
 }
