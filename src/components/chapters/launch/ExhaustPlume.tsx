@@ -4,7 +4,8 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { chapterProgress } from "@/lib/chapters";
-import { createSeededRandom, remapProgress } from "@/lib/math";
+import { sampleEngineThrottle } from "@/lib/launchTimeline";
+import { createSeededRandom } from "@/lib/math";
 import { useScrollStore } from "@/stores/scrollStore";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -34,14 +35,6 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const PARTICLE_COUNT = 320;
 const SEED = 41; // arbitrary but fixed — stable plume across mounts
-
-/**
- * Ignition ramp over Launch LOCAL progress. Placeholder values for step-2
- * review; step 3 (scroll choreography) re-tunes these against the actual
- * pad → ascent timing.
- */
-const IGNITION_START = 0.12;
-const IGNITION_FULL = 0.3;
 
 const VERTEX = /* glsl */ `
   attribute float aAngle;   // direction around the plume axis
@@ -143,7 +136,7 @@ export function ExhaustPlume() {
   const reducedMotion = useReducedMotion();
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const attrs = useMemo(buildPlumeAttributes, []);
+  const attrs = useMemo(() => buildPlumeAttributes(), []);
   // Initial values only. R3F copies this object's ENTRIES into the
   // material's own uniforms on mount, so mutating this memo after mount
   // updates a dead reference — per-frame writes must go through
@@ -160,8 +153,11 @@ export function ExhaustPlume() {
     const mat = materialRef.current;
     if (!mat || !pointsRef.current) return;
     // getState() in useFrame — per-frame read, zero React re-renders.
+    // Intensity is the shared engine-throttle envelope from the launch
+    // beat sheet (ignition ramp → full burn → MECO cutoff), so the plume,
+    // flame light and hold-down timing can never drift apart.
     const local = chapterProgress("launch", useScrollStore.getState().progress);
-    const intensity = remapProgress(IGNITION_START, IGNITION_FULL, local);
+    const intensity = sampleEngineThrottle(local);
     mat.uniforms.uIntensity.value = intensity;
     if (!reducedMotion) {
       mat.uniforms.uTime.value += delta;

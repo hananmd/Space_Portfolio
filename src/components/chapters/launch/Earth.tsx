@@ -24,8 +24,14 @@ export const EARTH_RADIUS = 3;
 /** Earth's real axial tilt (23.4°) — sells realism at zero cost. */
 const AXIAL_TILT = THREE.MathUtils.degToRad(23.4);
 
-/** Full local progress (0→1 through Launch) turns the planet this far. */
-const ROTATION_TURNS = 0.35;
+/**
+ * Full local progress (0→1 through Launch) turns the planet this far.
+ * Kept small since choreography fixed the pad in world space on the
+ * surface: a big spin would visibly drag the terrain out from under the
+ * rocket during the pad hold. 0.05 turns ≈ 5° across the entire pad
+ * phase — alive, but the ground stays put.
+ */
+const ROTATION_TURNS = 0.05;
 
 export function Earth() {
   const dayMap = useTexture("/textures/earth_day_2048.jpg", (tex) => {

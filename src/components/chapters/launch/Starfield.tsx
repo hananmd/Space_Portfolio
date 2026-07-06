@@ -95,7 +95,7 @@ function buildStarAttributes() {
 }
 
 export function Starfield() {
-  const { positions, sizes, colors } = useMemo(buildStarAttributes, []);
+  const { positions, sizes, colors } = useMemo(() => buildStarAttributes(), []);
 
   return (
     <points frustumCulled={false /* shell surrounds the camera; skip the cull test */}>

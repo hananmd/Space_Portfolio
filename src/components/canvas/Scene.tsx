@@ -22,7 +22,9 @@ export function Scene() {
     <Canvas
       // dpr capped at 2: retina sharpness without paying 3x fill rate.
       dpr={[1, 2]}
-      camera={{ fov: 45, near: 0.1, far: 200, position: [0, 2, 14] }}
+      // Initial position matches the timeline's t=0 pose so the first
+      // rendered frame IS the pad shot — no swoop-in on load.
+      camera={{ fov: 45, near: 0.1, far: 200, position: [0, 3.55, 2.9] }}
       style={{ position: "fixed", inset: 0 }}
       aria-hidden // decorative; all meaning lives in the DOM overlay layer
     >

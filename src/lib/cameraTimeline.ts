@@ -1,88 +1,95 @@
+import { CHAPTERS } from "./chapters";
 import {
-  clamp01,
-  easeInOutCubic,
-  easeLinear,
-  lerp,
-  type EasingFn,
-} from "./math";
+  lerpVec3,
+  sampleKeyframes,
+  type Keyframe,
+  type Vec3,
+} from "./keyframes";
+import { easeInOutCubic } from "./math";
 
 /**
  * The camera path is DATA, not code: an ordered list of keyframes over
- * global progress. The rig samples this timeline every frame; no chapter
+ * GLOBAL progress. The rig samples this timeline every frame; no chapter
  * ever moves the camera itself. To change the flight path you edit this
  * file only.
+ *
+ * Chapter 1 "Launch" choreography (camera side of the beat sheet shared
+ * with launchTimeline.ts — keyframe times below are authored as fractions
+ * of the launch range so the two stay aligned):
+ *
+ *   pad hero → ignition push-in → liftoff → ascent chase → orbit vista
+ *
+ * lookAt targets approximate the rocket's keyframed position at the same
+ * beat (they can't literally track it — this is data, not a reference);
+ * the rig's damping hides the small in-between mismatch.
  */
-
-export type Vec3 = readonly [number, number, number];
-
-export interface CameraKeyframe {
-  /** Global progress (0→1) at which the camera sits exactly at this pose. */
-  t: number;
-  position: Vec3;
-  /** Where the camera is looking when at this keyframe. */
-  lookAt: Vec3;
-  /** Easing applied across the segment that STARTS at this keyframe. */
-  ease?: EasingFn;
-}
 
 export interface CameraPose {
   position: Vec3;
   lookAt: Vec3;
 }
 
-/**
- * Phase 1 test path: three dummy waypoints (plus a hold at the end) so we
- * can verify the engine — fly, turn, and reverse perfectly on scroll-up.
- * Real Chapter 1 choreography replaces this data in Phase 2.
- */
+export type CameraKeyframe = Keyframe<CameraPose>;
+
+/** Launch chapter length in global progress — camera beats scale with it. */
+const L = CHAPTERS.launch.end;
+
 export const CAMERA_TIMELINE: readonly CameraKeyframe[] = [
-  // Waypoint A — start: pulled back, looking at origin marker.
-  { t: 0.0, position: [0, 2, 14], lookAt: [0, 0, 0], ease: easeInOutCubic },
-  // Waypoint B — swing left and closer, look at the second marker.
-  { t: 0.45, position: [-10, 4, 4], lookAt: [-6, 1, -4], ease: easeInOutCubic },
-  // Waypoint C — rise high on the right, look at the far marker.
-  { t: 0.9, position: [8, 9, -6], lookAt: [5, 0, -10], ease: easeLinear },
-  // Hold the final pose for the last 10% so the end of the scroll is calm.
-  { t: 1.0, position: [8, 9, -6], lookAt: [5, 0, -10] },
+  // PAD HERO (local 0): eye level with the rocket on its subarctic pad,
+  // horizon curving away below.
+  {
+    t: 0,
+    value: { position: [0, 3.55, 2.9], lookAt: [0, 3.42, 0] },
+    ease: easeInOutCubic,
+  },
+  // IGNITION PUSH-IN (local 0.18): drop low and close, looking up at the
+  // nose as the engine lights (ignition ramp is local 0.10–0.25).
+  {
+    t: 0.18 * L,
+    value: { position: [0.85, 3.18, 1.85], lookAt: [0, 3.55, 0] },
+    ease: easeInOutCubic,
+  },
+  // LIFTOFF (local 0.42): pull back and aside as the rocket leaves the pad.
+  {
+    t: 0.42 * L,
+    value: { position: [1.55, 3.35, 2.45], lookAt: [0.02, 3.75, 0] },
+    ease: easeInOutCubic,
+  },
+  // ASCENT CHASE (local 0.70): climbing with it — rocket upper frame,
+  // flame trailing, Earth's limb glowing at the bottom edge for scale.
+  {
+    t: 0.7 * L,
+    value: { position: [2.0, 4.5, 3.3], lookAt: [0.3, 4.4, 0] },
+    ease: easeInOutCubic,
+  },
+  // ORBIT VISTA (local 1.0 = end of Launch): wide pull-back — the planet
+  // owns the frame, the rocket a coasting speck upper-left after MECO.
+  {
+    t: L,
+    value: { position: [5.6, 6.9, 10.6], lookAt: [0.4, 4.35, 0] },
+  },
+  // Hold the vista for the rest of the scroll until later chapters claim
+  // their ranges (frozen until the decision gate).
+  {
+    t: 1,
+    value: { position: [5.6, 6.9, 10.6], lookAt: [0.4, 4.35, 0] },
+  },
 ];
 
-function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
-  return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+function lerpPose(a: CameraPose, b: CameraPose, t: number): CameraPose {
+  return {
+    position: lerpVec3(a.position, b.position, t),
+    lookAt: lerpVec3(a.lookAt, b.lookAt, t),
+  };
 }
 
 /**
- * Sample the timeline at global progress p.
- * Pure function of p → pose, which is what makes scroll perfectly
- * reversible: scrolling back replays the exact same poses in reverse.
+ * Sample the timeline at global progress p. Pure function of p → pose,
+ * which is what makes scroll perfectly reversible.
  */
 export function sampleCameraTimeline(
   p: number,
   timeline: readonly CameraKeyframe[] = CAMERA_TIMELINE
 ): CameraPose {
-  const clamped = clamp01(p);
-  const first = timeline[0];
-  const last = timeline[timeline.length - 1];
-
-  if (clamped <= first.t) return { position: first.position, lookAt: first.lookAt };
-  if (clamped >= last.t) return { position: last.position, lookAt: last.lookAt };
-
-  // Find the segment [a, b] containing p. Timeline is short (handful of
-  // keyframes), so a linear scan is clearer and fast enough.
-  let a = first;
-  let b = last;
-  for (let i = 0; i < timeline.length - 1; i++) {
-    if (clamped >= timeline[i].t && clamped <= timeline[i + 1].t) {
-      a = timeline[i];
-      b = timeline[i + 1];
-      break;
-    }
-  }
-
-  const segT = (clamped - a.t) / (b.t - a.t);
-  const eased = (a.ease ?? easeLinear)(segT);
-
-  return {
-    position: lerpVec3(a.position, b.position, eased),
-    lookAt: lerpVec3(a.lookAt, b.lookAt, eased),
-  };
+  return sampleKeyframes(timeline, p, lerpPose);
 }
