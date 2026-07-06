@@ -3,11 +3,7 @@
  * (PROJECTS). Text only: no position/scale here, see lib/stationLayout.ts
  * for the visual data (art-direction choices content.md doesn't make).
  *
- * Fields not yet consumed by this session's geometry-only step (problem,
- * stack, showGithub/showLiveDemo, githubUrl) are defined now anyway —
- * same precedent as content/skills.ts's caption field, which SolarChapter's
- * step 1 didn't render either and PlanetLabel only picked up two steps
- * later. Keeps content.md parsed into typed data exactly once.
+ * All fields are consumed by components/overlay/StationPanel.tsx.
  */
 
 export type ProjectStatus = "IN_BUILD" | "SHIPPED";
@@ -26,8 +22,13 @@ export interface ProjectStation {
   defends: readonly string[];
   showGithub: boolean;
   showLiveDemo: boolean;
-  /** TODO in content.md — Hanan to paste the repo URL. */
+  /** Repo URL from content.md §3. Optional because incident-copilot has
+   *  showGithub:false (button gate) and no URL yet. */
   githubUrl?: string;
+  /** No station has showLiveDemo:true in v1; kept optional for symmetry
+   *  with githubUrl so the panel can render this button the same way
+   *  once a project needs it. */
+  demoUrl?: string;
 }
 
 export const PROJECT_STATIONS: readonly ProjectStation[] = [
@@ -63,6 +64,7 @@ export const PROJECT_STATIONS: readonly ProjectStation[] = [
     defends: ["systems"],
     showGithub: true,
     showLiveDemo: false,
+    githubUrl: "https://github.com/hananmd/MAZE-PROJECT",
   },
   {
     id: "os-scheduler",
@@ -75,5 +77,6 @@ export const PROJECT_STATIONS: readonly ProjectStation[] = [
     defends: ["systems"],
     showGithub: true,
     showLiveDemo: false,
+    githubUrl: "https://github.com/hananmd/MultiLevelQueue",
   },
 ] as const;
