@@ -7,6 +7,7 @@ import {
   type Vec3,
 } from "./keyframes";
 import { SOLAR_LAYOUT } from "./solarLayout";
+import { STATION_LAYOUT } from "./stationLayout";
 import { easeInOutCubic } from "./math";
 
 /**
@@ -36,6 +37,21 @@ import { easeInOutCubic } from "./math";
  * exploring planets (system-design, mlops) deliberately get no camera
  * stop — solarLayout.ts already places them off this arc so they read as
  * distant background signal, not stops on the path.
+ *
+ * Chapter 3 "Stations" choreography (keyframe times authored as fractions
+ * of the stations range, same convention): the camera glides out of the
+ * Solar end-hold into a docking flyby past the 3 project stations in dock
+ * order (content.md: Incident Copilot → Maze → OS Scheduler). All 3 share
+ * ONE camera offset — stationLayout.ts already decided the stations share
+ * one scale, so a per-station offset here would invent a size hierarchy
+ * content.md never specifies. What does vary is dwell: Incident Copilot
+ * "docks first, most detailed panel" per content.md, so it gets a held
+ * linger (same hold-via-duplicate-value technique as the Solar hero),
+ * while Maze and OS Scheduler are a flyby. Framing targets each station's
+ * CENTER position, not its docking-ring face — Station.tsx tumbles each
+ * station around Y from Stations-local progress, so a shot that assumed a
+ * fixed ring-facing angle would drift out of frame as the station spins;
+ * the same reasoning already applies to planets' self-spin in Solar.
  */
 
 export interface CameraPose {
@@ -71,6 +87,32 @@ const HERO_POSE = planetPose("systems", [5, 2.2, 7]);
 const BACKEND_POSE = planetPose("backend", [4, 1.8, 6]);
 const DATABASES_POSE = planetPose("databases", [4, 1.6, 6.5]);
 const AI_RAG_POSE = planetPose("ai-rag", [4.5, 2, 7]);
+
+/** Stations chapter range in global progress — camera beats scale with it. */
+const STATIONS_START = CHAPTERS.stations.start;
+const STATIONS_SPAN = CHAPTERS.stations.end - CHAPTERS.stations.start;
+
+/** Stations-local fraction f → global progress. */
+function stationsT(f: number): number {
+  return STATIONS_START + f * STATIONS_SPAN;
+}
+
+/** A pose framing a station: pulled back by `offset` from its center,
+ *  looking straight at it — same technique as planetPose. */
+function stationPose(
+  id: keyof typeof STATION_LAYOUT,
+  offset: Vec3
+): CameraPose {
+  const { position } = STATION_LAYOUT[id];
+  return { position: addVec3(position, offset), lookAt: position };
+}
+
+// One offset for all 3 stations — they share a scale, so they share a
+// shot size too (see the module doc comment above).
+const STATION_OFFSET: Vec3 = [7, 3.4, 10];
+const INCIDENT_COPILOT_POSE = stationPose("incident-copilot", STATION_OFFSET);
+const MAZE_POSE = stationPose("maze", STATION_OFFSET);
+const OS_SCHEDULER_POSE = stationPose("os-scheduler", STATION_OFFSET);
 
 export const CAMERA_TIMELINE: readonly CameraKeyframe[] = [
   // PAD HERO (local 0): eye level with the rocket on its subarctic pad,
@@ -123,9 +165,23 @@ export const CAMERA_TIMELINE: readonly CameraKeyframe[] = [
   // final planet in visit order, camera settles here.
   { t: solarT(0.82), value: AI_RAG_POSE, ease: easeInOutCubic },
   { t: solarT(1.0), value: AI_RAG_POSE },
-  // Hold the ai/rag shot for the rest of the scroll until the Stations
-  // chapter (Phase 4) claims it — same freeze pattern used above.
-  { t: 1, value: AI_RAG_POSE },
+  // DOCKING APPROACH (stations-local 0.08): glide out of the ai/rag hold
+  // into the first station, docked first per content.md.
+  { t: stationsT(0.08), value: INCIDENT_COPILOT_POSE, ease: easeInOutCubic },
+  // INCIDENT COPILOT LINGER (stations-local 0.30): held pose (hold-via-
+  // duplicate-value, same technique as the Solar hero linger) — content.md
+  // calls this station's panel "most detailed", so it gets the longest
+  // dwell of the 3.
+  { t: stationsT(0.3), value: INCIDENT_COPILOT_POSE },
+  // MAZE (stations-local 0.55).
+  { t: stationsT(0.55), value: MAZE_POSE, ease: easeInOutCubic },
+  // OS SCHEDULER approach → arrival (stations-local 0.8 → 1.0 = end of
+  // Stations): last station in dock order, camera settles here.
+  { t: stationsT(0.8), value: OS_SCHEDULER_POSE, ease: easeInOutCubic },
+  { t: stationsT(1.0), value: OS_SCHEDULER_POSE },
+  // Hold the last station's shot for the rest of the scroll until the
+  // Constellation chapter (Phase 5) claims it — same freeze pattern.
+  { t: 1, value: OS_SCHEDULER_POSE },
 ];
 
 function lerpPose(a: CameraPose, b: CameraPose, t: number): CameraPose {

@@ -6,6 +6,7 @@ import { CameraRig } from "./CameraRig";
 import { PostProcessing } from "./PostProcessing";
 import { LaunchChapter } from "@/components/chapters/launch/LaunchChapter";
 import { SolarChapter } from "@/components/chapters/solar/SolarChapter";
+import { StationsChapter } from "@/components/chapters/stations/StationsChapter";
 
 /**
  * Scene shell: canvas config, lighting, camera rig, chapters.
@@ -43,6 +44,7 @@ export function Scene() {
       <Suspense fallback={null}>
         <LaunchChapter />
         <SolarChapter />
+        <StationsChapter />
       </Suspense>
       <CameraRig />
       <PostProcessing />
