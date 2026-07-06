@@ -1,0 +1,32 @@
+.label {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: var(--font-geist-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+  user-select: none;
+}
+
+/* Hero planet: largest, brightest — mirrors the hero sphere's rim glow
+   and the camera's longest dwell landing here. */
+.hero {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f2f6ff;
+}
+
+/* Main planets: legible but a step down from the hero. */
+.main {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #cbd6ea;
+}
+
+/* Exploring planets: small/dim, matching content.md's "background signal"
+   framing already applied to their flat, atmosphere-less spheres. */
+.exploring {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: #6b7688;
+}

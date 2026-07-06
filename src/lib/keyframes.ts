@@ -28,6 +28,12 @@ export function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
   return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 }
 
+/** Offset a point by a vector — used to derive a camera pose from a
+ *  planet's world position without hand-copying its coordinates. */
+export function addVec3(a: Vec3, offset: Vec3): Vec3 {
+  return [a[0] + offset[0], a[1] + offset[1], a[2] + offset[2]];
+}
+
 /**
  * Sample a track at progress p. Values before the first / after the last
  * keyframe clamp to the end keyframes, so a track can "hold" simply by

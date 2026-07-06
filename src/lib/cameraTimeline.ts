@@ -1,10 +1,12 @@
 import { CHAPTERS } from "./chapters";
 import {
+  addVec3,
   lerpVec3,
   sampleKeyframes,
   type Keyframe,
   type Vec3,
 } from "./keyframes";
+import { SOLAR_LAYOUT } from "./solarLayout";
 import { easeInOutCubic } from "./math";
 
 /**
@@ -22,6 +24,18 @@ import { easeInOutCubic } from "./math";
  * lookAt targets approximate the rocket's keyframed position at the same
  * beat (they can't literally track it — this is data, not a reference);
  * the rig's damping hides the small in-between mismatch.
+ *
+ * Chapter 2 "Solar" choreography (keyframe times authored as fractions of
+ * the solar range, same convention): the camera glides from the Launch
+ * orbit vista into a close hero shot on the systems-programming planet,
+ * lingers there (content.md: HERO, "camera lingers longest"), then flies
+ * past backend → databases → ai/rag in visit order. Camera positions are
+ * derived from SOLAR_LAYOUT's planet positions via a fixed offset per
+ * planet rather than copy-pasted coordinates, so the shot stays in sync
+ * if the art direction in solarLayout.ts ever moves a planet. The two
+ * exploring planets (system-design, mlops) deliberately get no camera
+ * stop — solarLayout.ts already places them off this arc so they read as
+ * distant background signal, not stops on the path.
  */
 
 export interface CameraPose {
@@ -33,6 +47,30 @@ export type CameraKeyframe = Keyframe<CameraPose>;
 
 /** Launch chapter length in global progress — camera beats scale with it. */
 const L = CHAPTERS.launch.end;
+
+/** Solar chapter range in global progress — camera beats scale with it. */
+const SOLAR_START = CHAPTERS.solar.start;
+const SOLAR_SPAN = CHAPTERS.solar.end - CHAPTERS.solar.start;
+
+/** Solar-local fraction f → global progress. */
+function solarT(f: number): number {
+  return SOLAR_START + f * SOLAR_SPAN;
+}
+
+/** A pose framing a planet: pulled back by `offset` from its center,
+ *  looking straight at it. */
+function planetPose(id: keyof typeof SOLAR_LAYOUT, offset: Vec3): CameraPose {
+  const { position } = SOLAR_LAYOUT[id];
+  return { position: addVec3(position, offset), lookAt: position };
+}
+
+// Hero gets the closest offset (biggest planet, camera lingers), the
+// three main planets a slightly wider, consistent offset so their
+// apparent on-screen size stays comparable across the flyby.
+const HERO_POSE = planetPose("systems", [5, 2.2, 7]);
+const BACKEND_POSE = planetPose("backend", [4, 1.8, 6]);
+const DATABASES_POSE = planetPose("databases", [4, 1.6, 6.5]);
+const AI_RAG_POSE = planetPose("ai-rag", [4.5, 2, 7]);
 
 export const CAMERA_TIMELINE: readonly CameraKeyframe[] = [
   // PAD HERO (local 0): eye level with the rocket on its subarctic pad,
@@ -62,18 +100,32 @@ export const CAMERA_TIMELINE: readonly CameraKeyframe[] = [
     value: { position: [2.0, 4.5, 3.3], lookAt: [0.3, 4.4, 0] },
     ease: easeInOutCubic,
   },
-  // ORBIT VISTA (local 1.0 = end of Launch): wide pull-back — the planet
-  // owns the frame, the rocket a coasting speck upper-left after MECO.
+  // ORBIT VISTA (local 1.0 = end of Launch = start of Solar): wide
+  // pull-back — the planet owns the frame, the rocket a coasting speck
+  // upper-left after MECO. Also the establishing shot for Solar: the
+  // camera glides from here straight into the hero push-in below.
   {
     t: L,
     value: { position: [5.6, 6.9, 10.6], lookAt: [0.4, 4.35, 0] },
   },
-  // Hold the vista for the rest of the scroll until later chapters claim
-  // their ranges (frozen until the decision gate).
-  {
-    t: 1,
-    value: { position: [5.6, 6.9, 10.6], lookAt: [0.4, 4.35, 0] },
-  },
+  // HERO PUSH-IN (solar-local 0.15): close on the systems-programming
+  // planet, the largest and first in visit order.
+  { t: solarT(0.15), value: HERO_POSE, ease: easeInOutCubic },
+  // HERO LINGER (solar-local 0.38): identical pose held — a hold-via-
+  // duplicate-value segment, same technique as the Launch/Solar handoff
+  // above. Gives the hero the longest dwell per content.md.
+  { t: solarT(0.38), value: HERO_POSE },
+  // BACKEND (solar-local 0.55).
+  { t: solarT(0.55), value: BACKEND_POSE, ease: easeInOutCubic },
+  // DATABASES (solar-local 0.68).
+  { t: solarT(0.68), value: DATABASES_POSE, ease: easeInOutCubic },
+  // AI / RAG approach → arrival (solar-local 0.82 → 1.0 = end of Solar):
+  // final planet in visit order, camera settles here.
+  { t: solarT(0.82), value: AI_RAG_POSE, ease: easeInOutCubic },
+  { t: solarT(1.0), value: AI_RAG_POSE },
+  // Hold the ai/rag shot for the rest of the scroll until the Stations
+  // chapter (Phase 4) claims it — same freeze pattern used above.
+  { t: 1, value: AI_RAG_POSE },
 ];
 
 function lerpPose(a: CameraPose, b: CameraPose, t: number): CameraPose {
