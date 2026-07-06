@@ -1,0 +1,56 @@
+.wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 12vh;
+  text-align: center;
+  gap: 1.5rem;
+  /* Guarantees text contrast whether the frame behind it is starfield or
+     bright Earth terrain — cheaper and more robust across aspect ratios
+     than tuning vertical offset to dodge the horizon precisely. */
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 55%);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Opacity is written imperatively per scroll tick; the transition just
+   smooths between updates. Skipped under reduced motion (no transition,
+   opacity value still tracks progress). */
+.animated {
+  transition: opacity 0.15s ease-out;
+}
+
+.name {
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #f2f6ff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+}
+
+.subtitle {
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  color: #b9c6dc;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+}
+
+.tagline {
+  font-size: clamp(0.8rem, 1.4vw, 1rem);
+  color: #7d93b3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+}
+
+.hint {
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+  color: #6b7d99;
+  letter-spacing: 0.04em;
+}

@@ -104,3 +104,14 @@ export function sampleRocketPose(local: number): RocketPose {
 export function sampleFlameIntensity(local: number): number {
   return FLAME_LIGHT_MAX * sampleEngineThrottle(local);
 }
+
+/**
+ * Overlay text fade-out windows (launch-local progress). Both start fully
+ * visible at local 0 — the hint has to be, since nothing else invites the
+ * first scroll. The hint disappears almost immediately once scrolling
+ * starts (its job is done); the identity block lingers long enough to
+ * read, then clears before the ignition push-in camera beat (local 0.18)
+ * so that close-up isn't fighting text.
+ */
+export const OVERLAY_HINT_FADE = { start: 0, end: 0.05 };
+export const OVERLAY_IDENTITY_FADE = { start: 0.05, end: 0.16 };
